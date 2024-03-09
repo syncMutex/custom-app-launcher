@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+option java_package = "com.example.ntheta";
+option java_multiple_files = true;
+
+message AppInfo {
+  string packageName = 1;
+  string label = 2;
+  string id = 3;
+}
+
+message HiddenAppMap {
+  map<string, AppInfo> hiddenMap = 1;
+}
