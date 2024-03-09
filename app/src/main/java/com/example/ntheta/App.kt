@@ -27,6 +27,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableFloatState
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
@@ -48,16 +50,14 @@ const val BOX_SIZEx6 = BOX_SIZE * 6
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun App(app: AppInfo, hide: (AppInfo) -> Unit, modifier: Modifier = Modifier) {
+fun App(
+    app: AppInfo,
+    hide: (AppInfo) -> Unit,
+    openApp: (String) -> Unit,
+    curRow: CurInteractRow,
+    modifier: Modifier = Modifier,
+) {
     val ctx = LocalContext.current
-    val pm = LocalContext.current.packageManager
-
-    val openApp = fun () {
-        val intent = pm.getLaunchIntentForPackage(app.packageName)
-        if(intent != null) {
-            ContextCompat.startActivity(ctx, intent, null)
-        }
-    }
 
     val openInfo = fun () {
         val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
@@ -79,70 +79,64 @@ fun App(app: AppInfo, hide: (AppInfo) -> Unit, modifier: Modifier = Modifier) {
             .height(BOX_SIZE.dp)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            var offsetX by remember { mutableFloatStateOf(0f) }
-
             Row {
-                Box(
-                    modifier
-                        .size(40.dp)
-                        .background(Color(0xff151515))
-                        .clickable(onClick = openInfo)
-                ) {
+                Box(modifier.size(40.dp).background(Color(0xff151515)).clickable(onClick = openInfo)) {
                     Icon(Icons.Rounded.Info, "", modifier.align(Alignment.Center))
                 }
-                Box(
-                    modifier
-                        .size(40.dp)
-                        .background(Color(0xff151515))
-                        .clickable(onClick = uninstall)
-                ) {
+                Box(modifier.size(40.dp).background(Color(0xff151515)).clickable(onClick = uninstall)) {
                     Icon(Icons.Rounded.Delete, "", modifier.align(Alignment.Center), tint = Color(0xffe34646))
                 }
-                Box(
-                    modifier
-                        .size(40.dp)
-                        .background(Color(0xff151515))
-                        .clickable {
-                            hide(app)
-                        }
-                ) {
+                Box(modifier.size(40.dp).background(Color(0xff151515)).clickable { hide(app) }) {
                     Text("H", modifier.align(Alignment.Center), color = Color(0xffAAAAAA))
                 }
             }
+
             Box(
                 modifier
-                    .offset { IntOffset(offsetX.roundToInt(), 0) }
+                    .offset { IntOffset(
+                        if(curRow.id == app.id) {
+                            curRow.offsetX.roundToInt()
+                        } else {
+                            0
+                        }, 0)
+                    }
                     .background(Color.Black)
                     .fillMaxWidth()
                     .fillMaxHeight()
                     .draggable(
                         orientation = Orientation.Horizontal,
                         state = rememberDraggableState { dx ->
-                            offsetX += dx
+                            curRow.offsetX += dx
 
-                            if (offsetX > BOX_SIZEx6) {
-                                offsetX = BOX_SIZEx6
+                            if (curRow.offsetX > BOX_SIZEx6) {
+                                curRow.offsetX = BOX_SIZEx6
                             }
 
-                            if (offsetX < 0) {
-                                offsetX = 0f
+                            if (curRow.offsetX < 0) {
+                                curRow.offsetX = 0f
+                            }
+                        },
+                        onDragStarted = {
+                            if(curRow.id != app.id) {
+                                curRow.offsetX = 0f
+                                curRow.id = app.id
                             }
                         },
                         onDragStopped = {
-                            offsetX = when {
-                                offsetX < 0 -> 0f
-                                offsetX <= BOX_SIZE -> 0f
-                                offsetX <= BOX_SIZEx2 -> BOX_SIZEx2
-                                offsetX <= BOX_SIZEx2 + BOX_SIZE -> BOX_SIZEx2
-                                offsetX <= BOX_SIZEx4 -> BOX_SIZEx4
-                                offsetX < BOX_SIZEx4 + BOX_SIZE -> BOX_SIZEx4
-                                offsetX < BOX_SIZEx6 -> BOX_SIZEx6
-                                offsetX > BOX_SIZEx6 -> BOX_SIZEx6
-                                else -> offsetX
+                            curRow.offsetX = when {
+                                curRow.offsetX < 0 -> 0f
+                                curRow.offsetX <= BOX_SIZE -> 0f
+                                curRow.offsetX <= BOX_SIZEx2 -> BOX_SIZEx2
+                                curRow.offsetX <= BOX_SIZEx2 + BOX_SIZE -> BOX_SIZEx2
+                                curRow.offsetX <= BOX_SIZEx4 -> BOX_SIZEx4
+                                curRow.offsetX < BOX_SIZEx4 + BOX_SIZE -> BOX_SIZEx4
+                                curRow.offsetX < BOX_SIZEx6 -> BOX_SIZEx6
+                                curRow.offsetX > BOX_SIZEx6 -> BOX_SIZEx6
+                                else -> curRow.offsetX
                             }
                         }
                     )
-                    .combinedClickable(onClick = openApp, onLongClick = {
+                    .combinedClickable(onClick = { openApp(app.packageName) }, onLongClick = {
                         Toast
                             .makeText(ctx, app.packageName, Toast.LENGTH_SHORT)
                             .show()

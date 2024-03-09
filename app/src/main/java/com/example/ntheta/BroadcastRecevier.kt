@@ -11,13 +11,15 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.platform.LocalContext
 
 @Composable
-fun SystemBroadcastRecvr(systemAction: String, onSystemEvent: (intent: Intent?) -> Unit) {
+fun SystemBroadcastRecvr(systemAction: String, dataScheme: String? = null, onSystemEvent: (intent: Intent?) -> Unit) {
     val ctx = LocalContext.current
     val currentOnSystemEvent by rememberUpdatedState(onSystemEvent)
 
     DisposableEffect(ctx, systemAction) {
         val intentFilter = IntentFilter(systemAction)
-        intentFilter.addDataScheme("package")
+        if(dataScheme != null) {
+            intentFilter.addDataScheme(dataScheme)
+        }
 
         val broadcast = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {

@@ -21,14 +21,10 @@ android {
             useSupportLibrary = true
         }
     }
-
     buildTypes {
-        release {
-            isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+        getByName("release") {
+            isMinifyEnabled = true
+            proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")
         }
     }
     compileOptions {
@@ -68,9 +64,6 @@ protobuf {
 dependencies {
     implementation("androidx.datastore:datastore:1.0.0")
     implementation("com.google.protobuf:protobuf-javalite:3.21.12")
-    // implementation("com.google.protobuf:protobuf-kotlin:3.21.12")
-    // implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.3.5")
-    // implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
 
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.1")

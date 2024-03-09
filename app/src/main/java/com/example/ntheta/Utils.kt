@@ -16,12 +16,13 @@ class SearchPat(pat: String?) {
     var pattern by mutableStateOf(pat)
     private var reg by mutableStateOf(Regex("", option = RegexOption.IGNORE_CASE))
 
-    fun setPat(newPat: String?) {
+    fun setPat(newPat: String) {
         pattern = newPat
+        reg = Regex(newPat, option = RegexOption.IGNORE_CASE)
+    }
 
-        if(newPat != null) {
-            reg = Regex(newPat, option = RegexOption.IGNORE_CASE)
-        }
+    fun reset() {
+        pattern = null
     }
 
     fun containsMatchIn(s: String): Boolean {

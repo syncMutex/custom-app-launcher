@@ -10,8 +10,12 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.ScrollableState
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,8 +32,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,6 +48,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.datastore.core.DataStore
 import androidx.datastore.dataStore
 import com.example.ntheta.ui.theme.NthetaTheme
@@ -51,6 +58,8 @@ import kotlinx.coroutines.launch
 lateinit var PACKAGE_NAME: String
 
 val Context.dataStore: DataStore<HiddenAppMap> by dataStore("appInfo.pb", serializer = HiddenAppMapSerializer)
+
+const val ONE_TAP_LOCKSCREEN = "com.coloros.onekeylockscreen"
 
 @RequiresApi(Build.VERSION_CODES.O)
 class MainActivity : ComponentActivity() {
@@ -70,6 +79,12 @@ class MainActivity : ComponentActivity() {
         }
 
         val lockScreen = fun() {
+            val intent = packageManager.getLaunchIntentForPackage(ONE_TAP_LOCKSCREEN)
+            if(intent != null) {
+                ContextCompat.startActivity(this, intent, null)
+                return
+            }
+
             if(dm.isAdminActive(compName)) {
                 dm.lockNow()
             } else {
@@ -96,12 +111,16 @@ class MainActivity : ComponentActivity() {
 fun MainLayout(lockScreen: () -> Unit, dataStoreManager: DataStoreHiddenAppMapManager) {
     val ctx = LocalContext.current
     val pm = ctx.packageManager
+    val scope = rememberCoroutineScope()
+    // don't make it mutableListOf because it won't update the ui because i am reassigning the array itself
     val apps = remember { mutableStateOf(getInstalledApps(pm)) }
     var hiddenApps by remember { mutableStateOf(mapOf<String, AppInfo>()) }
     val fl = dataStoreManager.getHiddenList()
     val forceComposeToggle = remember { mutableStateOf(true) }
     var currentListType by remember { mutableStateOf(ListType.All) }
-    val searchPat by remember { mutableStateOf(SearchPat(null)) }
+    val searchPat = remember { SearchPat(null) }
+    val curRow = remember { CurInteractRow() }
+    val scrollState = rememberScrollState()
 
     val forceCompose = fun () {
         forceComposeToggle.value = !forceComposeToggle.value
@@ -122,21 +141,36 @@ fun MainLayout(lockScreen: () -> Unit, dataStoreManager: DataStoreHiddenAppMapMa
 
     val setCurrentListType = fun(type: ListType) {
         currentListType = type
+        curRow.reset()
+        searchPat.reset()
+        scope.launch {
+            scrollState.scrollTo(0)
+        }
     }
 
-    val scope = rememberCoroutineScope()
+    SystemBroadcastRecvr(systemAction = Intent.ACTION_SCREEN_OFF) {intent ->
+        if(intent?.action == Intent.ACTION_SCREEN_OFF) {
+            curRow.reset()
+            searchPat.reset()
+            scope.launch {
+                scrollState.scrollTo(0)
+            }
+        }
+    }
 
-    SystemBroadcastRecvr(systemAction = Intent.ACTION_PACKAGE_ADDED) {intent ->
+    SystemBroadcastRecvr(systemAction = Intent.ACTION_PACKAGE_ADDED, dataScheme = "package") {intent ->
         Toast.makeText( ctx, "new package added", Toast.LENGTH_SHORT).show()
         if(intent?.action == Intent.ACTION_PACKAGE_ADDED) {
             refresh()
         }
     }
 
-    SystemBroadcastRecvr(systemAction = Intent.ACTION_PACKAGE_FULLY_REMOVED) {intent ->
+    SystemBroadcastRecvr(systemAction = Intent.ACTION_PACKAGE_FULLY_REMOVED, dataScheme = "package") {intent ->
         if(intent?.action == Intent.ACTION_PACKAGE_FULLY_REMOVED) {
             refresh()
-            val uninstalledPackage = intent.data?.schemeSpecificPart
+            val uninstalledPackage = intent.data?.schemeSpecificPart ?: return@SystemBroadcastRecvr
+
+            curRow.reset()
 
             for((k, v) in hiddenApps) {
                 if(v.packageName == uninstalledPackage) {
@@ -153,7 +187,16 @@ fun MainLayout(lockScreen: () -> Unit, dataStoreManager: DataStoreHiddenAppMapMa
     Column {
         TopBar(refresh, setCurrentListType, currentListType, apps.value.size, hiddenApps.size, searchPat)
         if(isHiddenAppsReady) {
-            ListOfApps(currentListType, apps.value, hiddenApps, forceCompose, searchPat, dataStoreManager)
+            ListOfApps(
+                currentListType,
+                apps.value,
+                hiddenApps,
+                forceCompose,
+                searchPat,
+                curRow,
+                scrollState,
+                dataStoreManager
+            )
         } else {
             Text("Loading...", fontFamily = FontFamily.Monospace, color = Color(0xFF777777))
         }
@@ -167,6 +210,16 @@ enum class ListType {
     Hidden
 }
 
+class CurInteractRow {
+    var id by mutableStateOf("")
+    var offsetX by mutableFloatStateOf(0f)
+
+    fun reset() {
+        id = ""
+        offsetX = 0f
+    }
+}
+
 @Composable
 fun ListOfApps(
     listType: ListType,
@@ -174,9 +227,14 @@ fun ListOfApps(
     hiddenApps: Map<String, AppInfo>,
     forceCompose: () -> Unit,
     searchPat: SearchPat,
+    curRow: CurInteractRow,
+    scrollState: ScrollState,
     dataStoreManager: DataStoreHiddenAppMapManager
 ) {
     val scope = rememberCoroutineScope()
+    val ctx = LocalContext.current
+    val pm = LocalContext.current.packageManager
+
     val hide = fun(app: AppInfo) {
         if(hiddenApps.containsKey(app.id)) {
             scope.launch {
@@ -190,15 +248,24 @@ fun ListOfApps(
         forceCompose()
     }
 
+    val openApp = fun (packageName: String) {
+        val intent = pm.getLaunchIntentForPackage(packageName)
+        if(intent != null) {
+            ContextCompat.startActivity(ctx, intent, null)
+        }
+        searchPat.reset()
+        curRow.reset()
+    }
+
     when(listType) {
         ListType.All -> Column(
             Modifier
                 .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scrollState)
         ) {
             for(it in apps) {
                 if(!hiddenApps.containsKey(it.id) && searchPat.containsMatchIn(it.label)) {
-                    App(it, hide)
+                    App(it, hide, openApp, curRow)
                 }
             }
         }
@@ -206,11 +273,11 @@ fun ListOfApps(
         ListType.Hidden -> Column(
             Modifier
                 .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scrollState)
         ) {
             for(it in hiddenApps.values) {
                 if(searchPat.containsMatchIn(it.label)) {
-                    App(it, hide)
+                    App(it, hide, openApp, curRow)
                 }
             }
         }
