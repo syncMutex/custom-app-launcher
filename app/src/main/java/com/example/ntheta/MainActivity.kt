@@ -13,9 +13,6 @@ import androidx.annotation.RequiresApi
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.ScrollableState
-import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -32,11 +29,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -52,7 +46,6 @@ import androidx.core.content.ContextCompat
 import androidx.datastore.core.DataStore
 import androidx.datastore.dataStore
 import com.example.ntheta.ui.theme.NthetaTheme
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 lateinit var PACKAGE_NAME: String
@@ -73,8 +66,8 @@ class MainActivity : ComponentActivity() {
 
         if(dm != null && !dm.isAdminActive(compName)) {
             val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
-            intent.putExtra("android.app.extra.DEVICE_ADMIN", compName);
-            intent.putExtra("android.app.extra.ADD_EXPLANATION", "");
+            intent.putExtra("android.app.extra.DEVICE_ADMIN", compName)
+            intent.putExtra("android.app.extra.ADD_EXPLANATION", "")
             startActivity(intent, null)
         }
 
@@ -293,8 +286,8 @@ fun LockButton(lockScreen: () -> Unit) {
     Box {
         Box(
             Modifier
-                .offset(screenWidth - 60.dp, screenHeight - 50.dp)
-                .size(30.dp)
+                .offset(screenWidth - 70.dp, screenHeight - 70.dp)
+                .size(35.dp)
                 .background(Color.White)
                 .clickable(onClick = lockScreen)
         ) {
@@ -303,7 +296,7 @@ fun LockButton(lockScreen: () -> Unit) {
                 "",
                 Modifier
                     .align(Alignment.Center)
-                    .size(20.dp),
+                    .size(22.dp),
                 tint = Color.Black
             )
         }

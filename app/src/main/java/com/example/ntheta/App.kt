@@ -26,13 +26,6 @@ import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableFloatState
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -81,7 +74,7 @@ fun App(
         Box(modifier = Modifier.fillMaxSize()) {
             Row {
                 Box(modifier.size(40.dp).background(Color(0xff151515)).clickable(onClick = openInfo)) {
-                    Icon(Icons.Rounded.Info, "", modifier.align(Alignment.Center))
+                    Icon(Icons.Rounded.Info, "", modifier.align(Alignment.Center), tint = Color.White)
                 }
                 Box(modifier.size(40.dp).background(Color(0xff151515)).clickable(onClick = uninstall)) {
                     Icon(Icons.Rounded.Delete, "", modifier.align(Alignment.Center), tint = Color(0xffe34646))

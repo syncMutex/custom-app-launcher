@@ -3,32 +3,26 @@ package com.example.ntheta
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredWidth
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.List
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -40,11 +34,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.TextUnit
-import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -61,11 +52,6 @@ fun TopBar(
     val config = LocalConfiguration.current
     val screenWidth = config.screenWidthDp
     val focusRequester = remember { FocusRequester() }
-    val modifier = Modifier
-        .fillMaxHeight()
-        .padding(horizontal = 4.dp)
-        .width(70.dp)
-        .background(Color(0xFF212121))
 
     if(searchPat.pattern != null) {
         Row(modifier = Modifier
@@ -103,35 +89,31 @@ fun TopBar(
             }
         }
     } else {
+        val iconModifier = Modifier
+            .fillMaxHeight()
+            .width(40.dp)
+            .padding(horizontal = 4.dp)
+            .background(Color(0xFF212121))
+
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
             Row(modifier = Modifier
                 .fillMaxWidth()
                 .height(30.dp)
             ) {
-                Box(
-                    Modifier
-                        .fillMaxHeight()
-                        .width(40.dp)
-                        .padding(horizontal = 4.dp)
-                        .background(Color(0xFF212121))
-                        .clickable { searchPat.setPat("") }
-                ) {
+                Box(iconModifier.clickable { searchPat.setPat("") }) {
                     Icon(Icons.Rounded.Search, contentDescription = "", Modifier.align(Alignment.Center))
                 }
 
-                Box(modifier.clickable { setCurrentListType(ListType.All) }) {
-                    Text("all", Modifier.align(Alignment.Center), fontFamily = FontFamily.Monospace)
+                Box(iconModifier.clickable { setCurrentListType(ListType.All) }) {
+                    Icon(Icons.Rounded.List, contentDescription = "", Modifier.align(Alignment.Center))
                 }
 
-                Box(modifier.clickable {
-                    refresh()
-                    Toast.makeText(ctx, "refreshed", Toast.LENGTH_SHORT).show()
-                }) {
-                    Text("refresh", Modifier.align(Alignment.Center), fontFamily = FontFamily.Monospace)
+                Box(iconModifier.clickable { refresh(); Toast.makeText(ctx, "refreshed", Toast.LENGTH_SHORT).show() }) {
+                    Icon(Icons.Rounded.Refresh, contentDescription = "", Modifier.align(Alignment.Center))
                 }
 
-                Box(modifier.clickable { setCurrentListType(ListType.Hidden) }) {
-                    Text("hidden", Modifier.align(Alignment.Center), fontFamily = FontFamily.Monospace)
+                Box(iconModifier.clickable { setCurrentListType(ListType.Hidden) }) {
+                    Text("H", Modifier.align(Alignment.Center))
                 }
 
                 val count = when(currentListType) {
