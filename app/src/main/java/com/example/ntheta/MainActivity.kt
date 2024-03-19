@@ -8,7 +8,6 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -96,12 +95,12 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-class CustomScrollManager(var scrollState: ScrollState) {
+class CustomScrollManager {
     var offset by mutableFloatStateOf(0f)
     var sensitivity by mutableFloatStateOf(1f)
 
-    suspend fun scrollTo(to: Int) {
-        scrollState.scrollTo(to)
+    fun scrollTo(to: Float) {
+        offset = to
     }
 }
 
@@ -118,33 +117,48 @@ fun MainLayout(lockScreen: () -> Unit, dataStoreManager: DataStoreManager) {
     var currentScreen by remember { mutableStateOf(Screen.All) }
     val searchPat = remember { SearchPat(null) }
     val curRow = remember { CurInteractRow() }
-    val scrollState = remember { CustomScrollManager(ScrollState(0)) }
+    val scrollState = remember { CustomScrollManager() }
 
     val forceCompose = fun () {
         forceComposeToggle.value = !forceComposeToggle.value
     }
     LaunchedEffect(forceComposeToggle.value) {}
 
+    val filterHiddenApps = fun() {
+        apps.value = apps.value.filter { !hiddenApps.containsKey(it.id) }
+    }
+
+    val addToApps = fun(app: AppInfo) {
+        val l = apps.value.toMutableList()
+        l.add(app)
+        apps.value = l.toSortedSet(compareBy({ it.label }, { it.label })).toList()
+    }
+
     var isHiddenAppsReady by remember { mutableStateOf(false) }
+
     LaunchedEffect(fl) {
         fl.collect {
             hiddenApps = it.hiddenMapMap
+            filterHiddenApps()
             scrollState.sensitivity = it.scrollSensitivity
+            if(it.scrollSensitivity == 0f) {
+                dataStoreManager.setSensitivity(1f)
+                scrollState.sensitivity = 1f
+            }
             isHiddenAppsReady = true
         }
     }
 
     val refresh = fun () {
         apps.value = getInstalledApps(pm)
+        filterHiddenApps()
     }
 
     val setCurrentScreen = fun(type: Screen) {
         currentScreen = type
         curRow.reset()
         searchPat.reset()
-        scope.launch {
-            scrollState.scrollTo(0)
-        }
+        scrollState.scrollTo(0f)
     }
 
     SystemBroadcastRecvr(systemAction = Intent.ACTION_SCREEN_OFF) {intent ->
@@ -179,8 +193,14 @@ fun MainLayout(lockScreen: () -> Unit, dataStoreManager: DataStoreManager) {
         }
     }
 
+    val count = if(currentScreen == Screen.All) {
+        apps.value.size
+    } else {
+        hiddenApps.size
+    }.toString()
+
     Column {
-        TopBar(refresh, setCurrentScreen, currentScreen, apps.value.size, hiddenApps.size, searchPat)
+        TopBar(refresh, setCurrentScreen, currentScreen, count, searchPat)
 
         when(currentScreen) {
             Screen.Settings -> {
@@ -201,15 +221,11 @@ fun MainLayout(lockScreen: () -> Unit, dataStoreManager: DataStoreManager) {
             }
             else -> {
                 if (isHiddenAppsReady) {
-                    ListOfApps(
-                        currentScreen,
-                        apps.value,
-                        hiddenApps,
-                        forceCompose,
-                        searchPat,
-                        curRow,
-                        scrollState,
-                        dataStoreManager
+                    ListOfApps(currentScreen, apps.value,
+                        hiddenApps, forceCompose,
+                        searchPat, curRow,
+                        scrollState, dataStoreManager,
+                        filterHiddenApps, addToApps
                     )
                 } else {
                     Text("Loading...", fontFamily = FontFamily.Monospace, color = Color(0xFF777777))

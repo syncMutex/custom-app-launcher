@@ -49,8 +49,7 @@ fun TopBar(
     refresh: () -> Unit,
     setCurrentScreen: (Screen) -> Unit,
     currentScreen: Screen,
-    allCount: Int,
-    hiddenCount: Int,
+    count: String,
     searchPat: SearchPat
 ) {
     val ctx = LocalContext.current
@@ -126,18 +125,9 @@ fun TopBar(
                 }
 
                 if(currentScreen != Screen.Settings) {
-                    val count = if(currentScreen == Screen.All) {
-                        (allCount - hiddenCount).toString()
-                    } else {
-                        hiddenCount.toString()
-                    }
-
                     Text(
-                        "(${count})",
-                        Modifier
-                            .align(Alignment.CenterVertically)
-                            .fillMaxWidth()
-                            .padding(end = 10.dp),
+                        text = "(${count})",
+                        Modifier.align(Alignment.CenterVertically).fillMaxWidth().padding(end = 10.dp),
                         textAlign = TextAlign.Left,
                         fontFamily = FontFamily.Monospace,
                         color = if(currentScreen == Screen.All) { Color.White } else { Color.Gray }
