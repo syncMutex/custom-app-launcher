@@ -3,8 +3,8 @@ package com.example.ntheta
 import android.content.Context
 import kotlinx.coroutines.flow.Flow
 
-class DataStoreHiddenAppMapManager (private val context: Context){
-    fun getHiddenList(): Flow<HiddenAppMap> {
+class DataStoreManager (private val context: Context){
+    fun getHiddenList(): Flow<Store> {
         return context.dataStore.data
     }
 
@@ -20,9 +20,9 @@ class DataStoreHiddenAppMapManager (private val context: Context){
         }
     }
 
-    suspend fun setHiddenList(hiddenMap: Map<String, AppInfo>) {
+    suspend fun setSensitivity(sensitivity: Float) {
         context.dataStore.updateData {
-            it.toBuilder().clearHiddenMap().putAllHiddenMap(hiddenMap).build()
+            it.toBuilder().setScrollSensitivity(sensitivity).build()
         }
     }
 }

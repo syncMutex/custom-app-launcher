@@ -14,9 +14,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.List
-import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.sharp.List
+import androidx.compose.material.icons.sharp.Refresh
+import androidx.compose.material.icons.sharp.Search
+import androidx.compose.material.icons.sharp.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,16 +35,20 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+const val TOP_BAR_HEIGHT = 30
+val TOP_BAR_HEIGHT_DP = TOP_BAR_HEIGHT.dp
+
 @Composable
 fun TopBar(
     refresh: () -> Unit,
-    setCurrentListType: (ListType) -> Unit,
-    currentListType: ListType,
+    setCurrentScreen: (Screen) -> Unit,
+    currentScreen: Screen,
     allCount: Int,
     hiddenCount: Int,
     searchPat: SearchPat
@@ -56,7 +61,7 @@ fun TopBar(
     if(searchPat.pattern != null) {
         Row(modifier = Modifier
             .fillMaxWidth()
-            .height(30.dp)
+            .height(TOP_BAR_HEIGHT_DP)
         ) {
             BasicTextField(
                 value = searchPat.pattern as String,
@@ -98,34 +103,46 @@ fun TopBar(
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
             Row(modifier = Modifier
                 .fillMaxWidth()
-                .height(30.dp)
+                .height(TOP_BAR_HEIGHT_DP)
             ) {
                 Box(iconModifier.clickable { searchPat.setPat("") }) {
-                    Icon(Icons.Rounded.Search, contentDescription = "", Modifier.align(Alignment.Center))
+                    Icon(Icons.Sharp.Search, contentDescription = "", Modifier.align(Alignment.Center), tint = Color.White)
                 }
 
-                Box(iconModifier.clickable { setCurrentListType(ListType.All) }) {
-                    Icon(Icons.Rounded.List, contentDescription = "", Modifier.align(Alignment.Center))
+                Box(iconModifier.clickable { setCurrentScreen(Screen.All) }) {
+                    Icon(Icons.Sharp.List, contentDescription = "", Modifier.align(Alignment.Center), tint = Color.White)
                 }
 
                 Box(iconModifier.clickable { refresh(); Toast.makeText(ctx, "refreshed", Toast.LENGTH_SHORT).show() }) {
-                    Icon(Icons.Rounded.Refresh, contentDescription = "", Modifier.align(Alignment.Center))
+                    Icon(Icons.Sharp.Refresh, contentDescription = "", Modifier.align(Alignment.Center), tint = Color.White)
                 }
 
-                Box(iconModifier.clickable { setCurrentListType(ListType.Hidden) }) {
-                    Text("H", Modifier.align(Alignment.Center))
+                Box(iconModifier.clickable { setCurrentScreen(Screen.Hidden) }) {
+                    Text("H", Modifier.align(Alignment.Center), fontWeight = FontWeight.Bold, color = Color.White)
                 }
 
-                val count = when(currentListType) {
-                    ListType.All -> (allCount - hiddenCount).toString()
-                    ListType.Hidden -> hiddenCount.toString()
+                Box(iconModifier.clickable { setCurrentScreen(Screen.Settings) }) {
+                    Icon(Icons.Sharp.Settings, contentDescription = "", Modifier.align(Alignment.Center), tint = Color.White)
                 }
 
-                Text("(${count})",
-                    Modifier
-                        .align(Alignment.CenterVertically)
-                        .fillMaxWidth()
-                        .padding(end = 10.dp), textAlign = TextAlign.Left, fontFamily = FontFamily.Monospace)
+                if(currentScreen != Screen.Settings) {
+                    val count = if(currentScreen == Screen.All) {
+                        (allCount - hiddenCount).toString()
+                    } else {
+                        hiddenCount.toString()
+                    }
+
+                    Text(
+                        "(${count})",
+                        Modifier
+                            .align(Alignment.CenterVertically)
+                            .fillMaxWidth()
+                            .padding(end = 10.dp),
+                        textAlign = TextAlign.Left,
+                        fontFamily = FontFamily.Monospace,
+                        color = if(currentScreen == Screen.All) { Color.White } else { Color.Gray }
+                    )
+                }
             }
         }
     }

@@ -7,7 +7,6 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import java.util.regex.Pattern
 import java.util.regex.PatternSyntaxException
 
 class AdminReceiver : DeviceAdminReceiver() {
@@ -21,7 +20,7 @@ class SearchPat(pat: String?) {
     fun setPat(newPat: String) {
         pattern = newPat
         try {
-            reg = Pattern.compile(newPat).toRegex()
+            reg = Regex(newPat, option = RegexOption.IGNORE_CASE)
         } catch (_: PatternSyntaxException) {
         }
     }

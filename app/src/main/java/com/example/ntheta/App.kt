@@ -21,8 +21,8 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.sharp.Delete
+import androidx.compose.material.icons.sharp.Info
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -73,19 +74,19 @@ fun App(
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             Row {
-                Box(modifier.size(40.dp).background(Color(0xff151515)).clickable(onClick = openInfo)) {
-                    Icon(Icons.Rounded.Info, "", modifier.align(Alignment.Center), tint = Color.White)
+                Box(Modifier.size(40.dp).background(Color(0xff151515)).clickable(onClick = openInfo)) {
+                    Icon(Icons.Sharp.Info, "", Modifier.align(Alignment.Center), tint = Color.White)
                 }
-                Box(modifier.size(40.dp).background(Color(0xff151515)).clickable(onClick = uninstall)) {
-                    Icon(Icons.Rounded.Delete, "", modifier.align(Alignment.Center), tint = Color(0xffe34646))
+                Box(Modifier.size(40.dp).background(Color(0xff151515)).clickable(onClick = uninstall)) {
+                    Icon(Icons.Sharp.Delete, "", Modifier.align(Alignment.Center), tint = Color(0xffe34646))
                 }
-                Box(modifier.size(40.dp).background(Color(0xff151515)).clickable { hide(app) }) {
-                    Text("H", modifier.align(Alignment.Center), color = Color(0xffAAAAAA))
+                Box(Modifier.size(40.dp).background(Color(0xff151515)).clickable { hide(app) }) {
+                    Text("H", Modifier.align(Alignment.Center), color = Color(0xffAAAAAA), fontWeight = FontWeight.Bold)
                 }
             }
 
             Box(
-                modifier
+                Modifier
                     .offset { IntOffset(
                         if(curRow.id == app.id) {
                             curRow.offsetX.roundToInt()
@@ -139,7 +140,7 @@ fun App(
                     app.label,
                     fontFamily = FontFamily.Monospace,
                     color = Color.White,
-                    modifier = modifier
+                    modifier = Modifier
                         .padding(horizontal = 4.dp)
                         .align(Alignment.CenterStart)
                 )

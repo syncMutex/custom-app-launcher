@@ -4,27 +4,24 @@ import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.sharp.Lock
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -50,11 +47,10 @@ import kotlinx.coroutines.launch
 
 lateinit var PACKAGE_NAME: String
 
-val Context.dataStore: DataStore<HiddenAppMap> by dataStore("appInfo.pb", serializer = HiddenAppMapSerializer)
+val Context.dataStore: DataStore<Store> by dataStore("appInfo.pb", serializer = StoreSerializer)
 
 const val ONE_TAP_LOCKSCREEN = "com.coloros.onekeylockscreen"
 
-@RequiresApi(Build.VERSION_CODES.O)
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -85,7 +81,7 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        val dataStoreHiddenAppMapManager = DataStoreHiddenAppMapManager(this)
+        val dataStoreHiddenAppMapManager = DataStoreManager(this)
 
         setContent {
             NthetaTheme {
@@ -100,8 +96,17 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+class CustomScrollManager(var scrollState: ScrollState) {
+    var offset by mutableFloatStateOf(0f)
+    var sensitivity by mutableFloatStateOf(1f)
+
+    suspend fun scrollTo(to: Int) {
+        scrollState.scrollTo(to)
+    }
+}
+
 @Composable
-fun MainLayout(lockScreen: () -> Unit, dataStoreManager: DataStoreHiddenAppMapManager) {
+fun MainLayout(lockScreen: () -> Unit, dataStoreManager: DataStoreManager) {
     val ctx = LocalContext.current
     val pm = ctx.packageManager
     val scope = rememberCoroutineScope()
@@ -110,10 +115,10 @@ fun MainLayout(lockScreen: () -> Unit, dataStoreManager: DataStoreHiddenAppMapMa
     var hiddenApps by remember { mutableStateOf(mapOf<String, AppInfo>()) }
     val fl = dataStoreManager.getHiddenList()
     val forceComposeToggle = remember { mutableStateOf(true) }
-    var currentListType by remember { mutableStateOf(ListType.All) }
+    var currentScreen by remember { mutableStateOf(Screen.All) }
     val searchPat = remember { SearchPat(null) }
     val curRow = remember { CurInteractRow() }
-    val scrollState = rememberScrollState()
+    val scrollState = remember { CustomScrollManager(ScrollState(0)) }
 
     val forceCompose = fun () {
         forceComposeToggle.value = !forceComposeToggle.value
@@ -122,8 +127,9 @@ fun MainLayout(lockScreen: () -> Unit, dataStoreManager: DataStoreHiddenAppMapMa
 
     var isHiddenAppsReady by remember { mutableStateOf(false) }
     LaunchedEffect(fl) {
-        fl.collect() {
+        fl.collect {
             hiddenApps = it.hiddenMapMap
+            scrollState.sensitivity = it.scrollSensitivity
             isHiddenAppsReady = true
         }
     }
@@ -132,8 +138,8 @@ fun MainLayout(lockScreen: () -> Unit, dataStoreManager: DataStoreHiddenAppMapMa
         apps.value = getInstalledApps(pm)
     }
 
-    val setCurrentListType = fun(type: ListType) {
-        currentListType = type
+    val setCurrentScreen = fun(type: Screen) {
+        currentScreen = type
         curRow.reset()
         searchPat.reset()
         scope.launch {
@@ -143,11 +149,7 @@ fun MainLayout(lockScreen: () -> Unit, dataStoreManager: DataStoreHiddenAppMapMa
 
     SystemBroadcastRecvr(systemAction = Intent.ACTION_SCREEN_OFF) {intent ->
         if(intent?.action == Intent.ACTION_SCREEN_OFF) {
-            curRow.reset()
-            searchPat.reset()
-            scope.launch {
-                scrollState.scrollTo(0)
-            }
+            setCurrentScreen(Screen.All)
         }
     }
 
@@ -178,103 +180,53 @@ fun MainLayout(lockScreen: () -> Unit, dataStoreManager: DataStoreHiddenAppMapMa
     }
 
     Column {
-        TopBar(refresh, setCurrentListType, currentListType, apps.value.size, hiddenApps.size, searchPat)
-        if(isHiddenAppsReady) {
-            ListOfApps(
-                currentListType,
-                apps.value,
-                hiddenApps,
-                forceCompose,
-                searchPat,
-                curRow,
-                scrollState,
-                dataStoreManager
-            )
-        } else {
-            Text("Loading...", fontFamily = FontFamily.Monospace, color = Color(0xFF777777))
+        TopBar(refresh, setCurrentScreen, currentScreen, apps.value.size, hiddenApps.size, searchPat)
+
+        when(currentScreen) {
+            Screen.Settings -> {
+                Text("Scroll Sensitivity: ${scrollState.sensitivity}", color = Color.White)
+                Slider(
+                    value = scrollState.sensitivity,
+                    onValueChange = {
+                        scrollState.sensitivity = it
+                        scope.launch {
+                            dataStoreManager.setSensitivity(it)
+                        }
+                    },
+                    valueRange = 1f..4f,
+                    modifier = Modifier
+                        .width((LocalConfiguration.current.screenWidthDp - 20).dp)
+                        .align(Alignment.CenterHorizontally)
+                )
+            }
+            else -> {
+                if (isHiddenAppsReady) {
+                    ListOfApps(
+                        currentScreen,
+                        apps.value,
+                        hiddenApps,
+                        forceCompose,
+                        searchPat,
+                        curRow,
+                        scrollState,
+                        dataStoreManager
+                    )
+                } else {
+                    Text("Loading...", fontFamily = FontFamily.Monospace, color = Color(0xFF777777))
+                }
+            }
         }
     }
 
-    LockButton(lockScreen)
+    if(currentScreen == Screen.All) {
+        LockButton(lockScreen)
+    }
 }
 
-enum class ListType {
+enum class Screen {
     All,
-    Hidden
-}
-
-class CurInteractRow {
-    var id by mutableStateOf("")
-    var offsetX by mutableFloatStateOf(0f)
-
-    fun reset() {
-        id = ""
-        offsetX = 0f
-    }
-}
-
-@Composable
-fun ListOfApps(
-    listType: ListType,
-    apps: List<AppInfo>,
-    hiddenApps: Map<String, AppInfo>,
-    forceCompose: () -> Unit,
-    searchPat: SearchPat,
-    curRow: CurInteractRow,
-    scrollState: ScrollState,
-    dataStoreManager: DataStoreHiddenAppMapManager
-) {
-    val scope = rememberCoroutineScope()
-    val ctx = LocalContext.current
-    val pm = LocalContext.current.packageManager
-
-    val hide = fun(app: AppInfo) {
-        if(hiddenApps.containsKey(app.id)) {
-            scope.launch {
-                dataStoreManager.remove(app.id)
-            }
-        } else {
-            scope.launch {
-                dataStoreManager.add(app.id, app)
-            }
-        }
-        forceCompose()
-    }
-
-    val openApp = fun (packageName: String) {
-        val intent = pm.getLaunchIntentForPackage(packageName)
-        if(intent != null) {
-            ContextCompat.startActivity(ctx, intent, null)
-        }
-        searchPat.reset()
-        curRow.reset()
-    }
-
-    when(listType) {
-        ListType.All -> Column(
-            Modifier
-                .fillMaxWidth()
-                .verticalScroll(scrollState)
-        ) {
-            for(it in apps) {
-                if(!hiddenApps.containsKey(it.id) && searchPat.containsMatchIn(it.label)) {
-                    App(it, hide, openApp, curRow)
-                }
-            }
-        }
-
-        ListType.Hidden -> Column(
-            Modifier
-                .fillMaxWidth()
-                .verticalScroll(scrollState)
-        ) {
-            for(it in hiddenApps.values) {
-                if(searchPat.containsMatchIn(it.label)) {
-                    App(it, hide, openApp, curRow)
-                }
-            }
-        }
-    }
+    Hidden,
+    Settings
 }
 
 @Composable
@@ -292,7 +244,7 @@ fun LockButton(lockScreen: () -> Unit) {
                 .clickable(onClick = lockScreen)
         ) {
             Icon(
-                Icons.Rounded.Lock,
+                Icons.Sharp.Lock,
                 "",
                 Modifier
                     .align(Alignment.Center)

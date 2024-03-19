@@ -9,6 +9,7 @@ message AppInfo {
   string id = 3;
 }
 
-message HiddenAppMap {
+message Store {
   map<string, AppInfo> hiddenMap = 1;
+  float scrollSensitivity = 2;
 }
