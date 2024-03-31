@@ -49,6 +49,7 @@ fun App(
     hide: (AppInfo) -> Unit,
     openApp: (String) -> Unit,
     curRow: CurInteractRow,
+    textColor: Color,
     modifier: Modifier = Modifier,
 ) {
     val ctx = LocalContext.current
@@ -139,7 +140,7 @@ fun App(
                 Text(
                     app.label,
                     fontFamily = FontFamily.Monospace,
-                    color = Color.White,
+                    color = textColor,
                     modifier = Modifier
                         .padding(horizontal = 4.dp)
                         .align(Alignment.CenterStart)

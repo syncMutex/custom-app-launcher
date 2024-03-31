@@ -111,9 +111,9 @@ fun ListOfApps(
     Box {
         val isAtEnd = when(screen) {
             Screen.All ->
-                displayList(apps, from, maxScrollCount, searchPat, hide, openApp, curRow, scrollModifier)
+                displayList(apps, from, maxScrollCount, searchPat, hide, openApp, curRow, scrollModifier, Color.White)
             Screen.Hidden ->
-                displayList(hiddenApps.values.toList(), from, maxScrollCount, searchPat, hide, openApp, curRow, scrollModifier)
+                displayList(hiddenApps.values.toList(), from, maxScrollCount, searchPat, hide, openApp, curRow, scrollModifier, Color.Gray)
             else -> false
         }
 
@@ -132,7 +132,8 @@ fun displayList(
     hide: (AppInfo) -> Unit,
     openApp: (String) -> Unit,
     curRow: CurInteractRow,
-    scrollModifier: Modifier
+    scrollModifier: Modifier,
+    textColor: Color
 ): Boolean {
     val maxItemIdx: Int = list.size - 1
     val displayableRange = from..(minOf(from + max, maxItemIdx))
@@ -141,7 +142,7 @@ fun displayList(
         for(i in displayableRange) {
             val it = list[i]
             if(searchPat.containsMatchIn(it.label)) {
-                App(it, hide, openApp, curRow)
+                App(it, hide, openApp, curRow, textColor)
             }
         }
     }

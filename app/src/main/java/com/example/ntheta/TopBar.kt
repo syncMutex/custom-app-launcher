@@ -108,19 +108,23 @@ fun TopBar(
                     Icon(Icons.Sharp.Search, contentDescription = "", Modifier.align(Alignment.Center), tint = Color.White)
                 }
 
-                Box(iconModifier.clickable { setCurrentScreen(Screen.All) }) {
-                    Icon(Icons.Sharp.List, contentDescription = "", Modifier.align(Alignment.Center), tint = Color.White)
+                if(currentScreen == Screen.Hidden) {
+                    Box(iconModifier.clickable { setCurrentScreen(Screen.All) }) {
+                        Icon(Icons.Sharp.List, contentDescription = "", Modifier.align(Alignment.Center), tint = Color.White)
+                    }
+                } else {
+                    Box(iconModifier.clickable { setCurrentScreen(Screen.Hidden) }) {
+                        Text("H", Modifier.align(Alignment.Center), fontWeight = FontWeight.Bold, color = Color.White)
+                    }
                 }
 
                 Box(iconModifier.clickable { refresh(); Toast.makeText(ctx, "refreshed", Toast.LENGTH_SHORT).show() }) {
                     Icon(Icons.Sharp.Refresh, contentDescription = "", Modifier.align(Alignment.Center), tint = Color.White)
                 }
 
-                Box(iconModifier.clickable { setCurrentScreen(Screen.Hidden) }) {
-                    Text("H", Modifier.align(Alignment.Center), fontWeight = FontWeight.Bold, color = Color.White)
-                }
-
-                Box(iconModifier.clickable { setCurrentScreen(Screen.Settings) }) {
+                Box(iconModifier.clickable { setCurrentScreen(
+                    if(currentScreen == Screen.Settings) { Screen.All } else { Screen.Settings }
+                ) }) {
                     Icon(Icons.Sharp.Settings, contentDescription = "", Modifier.align(Alignment.Center), tint = Color.White)
                 }
 

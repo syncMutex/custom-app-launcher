@@ -168,8 +168,9 @@ fun MainLayout(lockScreen: () -> Unit, dataStoreManager: DataStoreManager) {
     }
 
     SystemBroadcastRecvr(systemAction = Intent.ACTION_PACKAGE_ADDED, dataScheme = "package") {intent ->
-        Toast.makeText( ctx, "new package added", Toast.LENGTH_SHORT).show()
         if(intent?.action == Intent.ACTION_PACKAGE_ADDED) {
+            val installedPackage = intent.data?.schemeSpecificPart ?: return@SystemBroadcastRecvr
+            Toast.makeText(ctx, "installed \"$installedPackage\"", Toast.LENGTH_LONG).show()
             refresh()
         }
     }
@@ -208,12 +209,12 @@ fun MainLayout(lockScreen: () -> Unit, dataStoreManager: DataStoreManager) {
                 Slider(
                     value = scrollState.sensitivity,
                     onValueChange = {
-                        scrollState.sensitivity = it
+                        scrollState.sensitivity = String.format("%.2f", it).toFloat()
                         scope.launch {
-                            dataStoreManager.setSensitivity(it)
+                            dataStoreManager.setSensitivity(scrollState.sensitivity)
                         }
                     },
-                    valueRange = 1f..4f,
+                    valueRange = 0.1f..10f,
                     modifier = Modifier
                         .width((LocalConfiguration.current.screenWidthDp - 20).dp)
                         .align(Alignment.CenterHorizontally)
